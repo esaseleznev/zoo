@@ -1,6 +1,5 @@
 package es.zk.client;
 
-import com.sun.tools.internal.xjc.addon.sync.SynchronizedMethodAddOn;
 import org.apache.zookeeper.KeeperException;
 
 import java.util.List;
