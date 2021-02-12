@@ -1,0 +1,8 @@
+# Project exclude paths
+/.gradle/
+/es-app/out/
+/es-app/out/production/classes/
+/es-app-log-config/out/
+/es-job-v1/out/
+/es-job-v1/out/production/classes/
+/.idea
