@@ -1,0 +1,170 @@
+ext {
+    localProps = new Properties()
+    localProps.load(new StringReader(file("local.properties").text))
+    fileExt = ""
+    switch(System.getProperty('os.name').toLowerCase().split()[0]) {
+        case 'windows':
+            fileExt = ".bat"
+            break
+        case 'linux':
+            fileExt = ".sh"
+            break
+        default:
+            throw new Exception('Unknown OS')
+    }
+
+}
+
+task redeployApp(type: Exec) {
+    executable = file("$System.env.WAS_HOME/bin/wsadmin$fileExt")
+    args = [
+            "-lang", "jython",
+            "-host", localProps['was.host'],
+            "-profileName", localProps['was.profile.name'],
+            "-user", localProps['was.user'],
+            "-password", localProps['was.pwd'],
+            "-f", localProps['redeploy-script'],
+            "-blaName",
+            localProps['spu-application-name'],
+            "-deployFilePath",
+            "${localProps['main_root']}/Applications/gradle_build/" + localProps['distr-folder'] + "/distributions"
+    ]
+    if (localProps['serverName'] == null || localProps['serverName'].isEmpty()){
+        if(localProps['clusterName'] != null && !localProps['clusterName'].isEmpty()){
+            args += ["-clusterName", localProps['clusterName']]
+        } else {
+            throw new IllegalArgumentException("one of serverName or clusterName params should be present in properties and must not be empty")
+        }
+    } else {
+        args += ["-serverName", localProps['serverName']]
+    }
+}
+
+task undeployApp(type: Exec) {
+    executable = file("$System.env.WAS_HOME/bin/wsadmin$fileExt")
+    args = [
+            "-lang", "jython",
+            "-host", localProps['was.host'],
+            "-profileName", localProps['was.profile.name'],
+            "-user", localProps['was.user'],
+            "-password", localProps['was.pwd'],
+            "-f", localProps['undeploy-script'],
+            localProps['spu-application-name'],
+            "${localProps['main_root']}/Applications/gradle_build/spu-eba/distributions"
+    ]
+}
+
+task startServer(type: Exec) {
+    executable = file("$System.env.WAS_HOME/bin/startServer$fileExt")
+    args = [localProps['was.instance.name']]
+}
+
+task stopServer(type: Exec) {
+    executable = file("$System.env.WAS_HOME/bin/stopServer$fileExt")
+    args = [
+            localProps['was.instance.name'],
+            "-user", localProps['was.user'],
+            "-password", localProps['was.pwd'],
+    ]
+}
+
+task restartApp(type: Exec) {
+    executable = file("$System.env.WAS_HOME/bin/wsadmin$fileExt")
+    args = [
+            "-lang", "jython",
+            "-host", localProps['was.host'],
+            "-profileName", localProps['was.profile.name'],
+            "-user", localProps['was.user'],
+            "-password", localProps['was.pwd'],
+            "-f", localProps['restart-script'],
+            localProps['spu-application-name']
+    ]
+}
+
+task stopApp(type: Exec) {
+    executable = file("$System.env.WAS_HOME/bin/wsadmin$fileExt")
+    args = [
+            "-lang", "jython",
+            "-host", localProps['was.host'],
+            "-profileName", localProps['was.profile.name'],
+            "-user", localProps['was.user'],
+            "-password", localProps['was.pwd'],
+            "-c", "print AdminTask.stopBLA(['-blaID', '${localProps['spu-application-name']}'])"
+    ]
+}
+
+task startApp(type: Exec) {
+    executable = file("$System.env.WAS_HOME/bin/wsadmin$fileExt")
+    args = [
+            "-lang", "jython",
+            "-host", localProps['was.host'],
+            "-profileName", localProps['was.profile.name'],
+            "-user", localProps['was.user'],
+            "-password", localProps['was.pwd'],
+            "-c", "print AdminTask.startBLA(['-blaID', '${localProps['spu-application-name']}'])"
+    ]
+}
+
+remotes {
+    spu_devel_1 {
+        host = localProps['ssh.host']
+        user = localProps['ssh.user']
+        password = localProps['ssh.pwd']
+        knownHosts = file("${System.properties['user.home']}/.ssh/known_hosts")
+    }
+}
+
+task remoteDeploy {
+    def args = [
+            "${localProps['was.home']}/bin/wsadmin.sh",
+            '-lang jython',
+            '-user', localProps['was.user'],
+            '-password', localProps['was.pwd'],
+            '-f', "${localProps['deploy.script.path']}/app_manage.py",
+            '-blaName', localProps['spu-application-name'],
+            '-deployFilePath', localProps['deploy.tmp.path']
+    ]
+
+    if (localProps['serverName'] == null || localProps['serverName'].isEmpty()){
+        if(localProps['clusterName'] != null && !localProps['clusterName'].isEmpty()){
+            args += ["-clusterName", localProps['clusterName']]
+        } else {
+            throw new IllegalArgumentException("one of serverName or clusterName params should be present in properties and must not be empty")
+        }
+    } else {
+        args += ["-serverName", localProps['serverName']]
+    }
+
+    doLast(){
+        def ll_res = ssh.run{
+            session(remotes.spu_devel_1){
+                execute("rm -rf ${localProps['deploy.tmp.path']}/*.eba")
+                execute("echo temporary dir cleared")
+                put from: file("${localProps['redeploy-script']}"), into: localProps['deploy.tmp.path']
+                execute("echo deploy script copied")
+                put from: fileTree("${localProps['main_root']}/Applications/gradle_build/" + localProps['distr-folder'] + "/distributions"), into: localProps['deploy.tmp.path']
+                execute("echo application archive copied")
+                execute("echo going run command: ${args.join(" ")}")
+                execute(args.join(" "))
+                execute("echo application deployed")
+                execute("rm -rf ${localProps['deploy.tmp.path']}/*.eba")
+                execute("echo temporary dir cleared")
+            }
+        }
+        print ll_res
+    }
+}
+
+task testssh {
+    doLast(){
+        ssh.run{
+            session(remotes.spu_devel_1){
+                execute("ls -l ${localProps['deploy.tmp.path']}")
+                execute("rm -rf ${localProps['deploy.tmp.path']}/*.eba")
+                execute("ls -l ${localProps['deploy.tmp.path']}")
+                put from: fileTree("${localProps['main_root']}/Applications/gradle_build/spu-eba/distributions"), into: localProps['deploy.tmp.path']
+                execute("ls -l ${localProps['deploy.tmp.path']}")
+            }
+        }
+    }
+}

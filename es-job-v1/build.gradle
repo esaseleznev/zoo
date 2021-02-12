@@ -1,0 +1,16 @@
+dependencies {
+    compile ("org.apache.zookeeper:zookeeper:3.6.2")
+
+    compileOnly(
+            jacksonMapper,
+            jacksonCore
+    )
+}
+
+bundle {
+    instruction 'Import-Package', [
+            "org.codehaus.jackson.map",
+            "org.codehaus.jackson.type",
+            "org.slf4j"
+    ].join(',')
+}

@@ -1,0 +1,54 @@
+bundle {
+    instruction 'Import-Package', [
+            "es.job.v1.api"
+
+    ].join(',')
+}
+
+apply plugin: 'ru.redsys.gradle.application-spring-archiver'
+
+dependencies {
+    compile(project(':es-job-v1'))
+    compile(project(':es-app-log-config'))
+
+    compile(slf4j, slf4jApi, log4j)
+    compile(
+            jacksonCore,
+            jacksonMapper,
+            commonsLogging,
+            'org.springframework:spring-context:4.3.29.RELEASE',
+            'org.springframework:spring-beans:4.3.29.RELEASE',
+            'org.springframework:spring-core:4.3.29.RELEASE',
+            'org.springframework:spring-expression:4.3.29.RELEASE'
+    )
+
+    compile "org.apache.zookeeper:zookeeper:3.6.2"
+    compile "org.apache.zookeeper:zookeeper-jute:3.6.2"
+    compile "commons-lang:commons-lang:*"
+    //compile "commons-cli:commons-cli:*"
+    compile "org.apache.yetus:audience-annotations:*"
+    compile "io.netty:netty-handler:*"
+    compile "io.netty:netty-transport-native-epoll:*"
+    //compile "org.slf4j:slf4j-api:*"
+    //compile "org.slf4j:slf4j-log4j12:*"
+    //compile "org.eclipse.jetty:jetty-server:*"
+    //compile "org.eclipse.jetty:jetty-servlet:*"
+    //compile "com.fasterxml.jackson.core:jackson-databind:*"
+    //compile "com.googlecode.json-simple:json-simple:*"
+    //compile "jline:jline:*"
+    //compile "io.dropwizard.metrics:metrics-core:*"
+    //compile "log4j:log4j:*"
+    //compile "org.xerial.snappy:snappy-java:*"
+}
+
+options {
+    includeProjectJar = true
+}
+
+applicationManifest {
+    applicationName = "ES spring Application $version"
+}
+
+pack {
+    archiveContent = "all" //"applicationContent" //  "none" //
+}

@@ -1,0 +1,98 @@
+buildscript {
+    repositories {
+        jcenter()
+        flatDir {
+            dirs "$localLibFlatDir"
+        }
+    }
+
+    dependencies {
+        classpath "ru.redsys.gradle:application-bundle-archiver:1.1.1"
+        classpath "ru.redsys.gradle:application-spring-archiver:1.0.1"
+        classpath "org.dm.gradle:gradle-bundle-plugin:0.6.3"
+        classpath "biz.aQute.bnd:biz.aQute.bndlib:2.4.1"
+    }
+}
+
+plugins {
+    id "java"
+    id "idea"
+}
+
+def loadBuildVersion = { versionFilePath ->
+    Properties verProps = new Properties()
+    verProps.load(new FileInputStream("$versionFilePath/version.properties"))
+    if(vSpecifier != null && !vSpecifier.isEmpty()){
+        vSpecifier = "$vSpecifier"
+    }
+    def defnedVersion = "${verProps.get("project.version.major").toInteger()}.${verProps.get("project.version.minor").toInteger()}.${verProps.get("project.version.micro").toInteger()}"
+    def revision = verProps.get("project.version.revision")
+    if(revision != null && !"$revision".trim().isEmpty()){
+        revision = ".$revision"
+    } else {
+        revision = ""
+    }
+    defnedVersion += "${((vSpecifier != null) && (!vSpecifier.trim().isEmpty())) ? ".$vSpecifier"  : revision}"
+    return defnedVersion
+}
+
+/**
+ * Load libraries definitions from libraries.properties file
+ */
+def defineLibraries = {
+    def props = new Properties()
+    file("libraries.properties").withInputStream {props.load(it)}
+    props.each {key, value ->
+        project.ext.set(key, value)
+    }
+}
+
+ext {
+    defineLibraries()
+    if(!project.hasProperty("buildVersion"))
+        buildVersion = loadBuildVersion("$vFilePath")
+}
+
+logger.lifecycle("project Version : $buildVersion")
+
+subprojects {
+    apply plugin: 'idea'
+
+    version = "$buildVersion"
+
+    repositories {
+        jcenter()
+        flatDir {
+            dirs "$localLibFlatDir"
+            dirs "$gradle.gradleHomeDir/lib/plugins"
+        }
+    }
+    buildDir = "../../gradle_build/$project.name"
+}
+
+configure(subprojects) {
+
+    apply plugin: 'java'
+
+    dependencies {
+        compileOnly(slf4jApi)
+    }
+
+	sourceCompatibility = "$javaVersion"
+	targetCompatibility = "$javaVersion"
+	
+    apply plugin: 'org.dm.bundle'
+    bundle {
+        instruction 'Bundle-Name', "$project.name"
+        instruction 'Bundle-SymbolicName', "$project.name"
+    }
+
+}
+
+
+
+buildDir = "../gradle_build/$project.name"
+version = buildVersion
+apply plugin: 'idea'
+
+

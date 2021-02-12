@@ -1,0 +1,3 @@
+bundle{
+    instruction 'Fragment-Host', "log4j"
+}

@@ -1,0 +1,4 @@
+rootProject.name = 'app'
+include 'es-job-v1'
+include 'es-app'
+include 'es-app-log-config'
