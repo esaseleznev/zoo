@@ -1,15 +1,16 @@
 package es.zk.client;
 
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 
 public class ServiceRegistrar {
-    public String register(Connection zkConnection, String name) throws Exception {
+
+    private Connection zkConnection;
+
+    public String register(String name) throws Exception {
         String service = "/spu/services/" + name;
 
         if (zkConnection.exists("/spu") == null) {
@@ -72,5 +73,9 @@ public class ServiceRegistrar {
             }
         }
         return null;
+    }
+
+    public void setZkConnection(Connection zkConnection) {
+        this.zkConnection = zkConnection;
     }
 }

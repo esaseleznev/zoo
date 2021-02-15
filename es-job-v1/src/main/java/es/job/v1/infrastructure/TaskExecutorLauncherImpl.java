@@ -30,6 +30,8 @@ public class TaskExecutorLauncherImpl implements Runnable {
         scheduledFutureLauncher = launcher.scheduleWithFixedDelay(this, getDelay(), getPeriod(), TimeUnit.MILLISECONDS);
         try {
             zkConnection.connect("localhost");
+            serviceRegistrar.setZkConnection(zkConnection);
+            serviceSearcher.setZkConnection(zkConnection);
 
         } catch (Exception e) {
             log.error("zk problem", e);
@@ -48,10 +50,10 @@ public class TaskExecutorLauncherImpl implements Runnable {
             }
 
             if (zkConnection.getNodeChildren("/spu/services/test").size() < 10) {
-                serviceRegistrar.register(zkConnection, "test");
+                serviceRegistrar.register("test");
             }
 
-            System.out.println("search " + serviceSearcher.search(zkConnection, "test"));
+            System.out.println("search " + serviceSearcher.search("test"));
 
 
         } catch (Exception e) {

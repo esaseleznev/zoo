@@ -9,8 +9,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ServiceSearcher {
 
     private final ConcurrentHashMap<String, AtomicInteger> indexMap = new ConcurrentHashMap<>();
+    private Connection zkConnection;
 
-    public String search(Connection zkConnection, String name) throws KeeperException, InterruptedException {
+    public String search(String name) throws KeeperException, InterruptedException {
         String result = "0";
         String service = "/spu/services/" + name;
 
@@ -41,5 +42,9 @@ public class ServiceSearcher {
         }
 
         return result;
+    }
+
+    public void setZkConnection(Connection zkConnection) {
+        this.zkConnection = zkConnection;
     }
 }
